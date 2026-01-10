@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
 // =========================================================
-// あなたのURL（そのままでOKです！）
+// URLはそのままでOK！（もし消えてたら貼り直してね）
 // =========================================================
 const API_URL = "https://script.google.com/macros/s/AKfycbxuyFL8a5BQVNufxLNtXy_iF0iLKcBZiwUlzuJ-kU2a_BVgOo2nFiUPoxwQBBlOqFGFOg/exec"; 
 
@@ -10,21 +10,28 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [lang, setLang] = useState("ja");
   
-  const [database, setDatabase] = useState([]);
+  // 【修正1】ここがエラーの原因でした！
+  // 「中身はなんでもOKな配列だよ」と明示して、Vercelを安心させます。
+  const [database, setDatabase] = useState<any[]>([]);
+  
   const [loading, setLoading] = useState(true);
 
-  // -------------------------------------------------------
-  // データの読み込み＆変換（ここを修正しました！）
-  // -------------------------------------------------------
   useEffect(() => {
     fetch(API_URL)
       .then((res) => res.json())
       .then((rawData) => {
-        // APIから来たデータの中に "A列" などのキーが含まれているかチェック
-        // 1行目がヘッダー（説明書き）の場合は除外して、中身だけ取り出す
+        // 【修正2】データが本当に配列かチェックする安全策を追加
+        if (!Array.isArray(rawData)) {
+            console.error("データが配列ではありません");
+            setLoading(false);
+            return;
+        }
+
         const cleanData = rawData.slice(1).map((item: any) => {
+          // 【修正3】万が一、中身が空っぽ(null)の行があっても無視するようにする
+          if (!item) return null;
+
           return {
-            // ここで「B列」→「title_en」に強制変換します！
             title_en: item["B列"],   
             title_ja: item["C列"],
             anime_ep: item["D列"],
@@ -33,9 +40,8 @@ export default function App() {
             link_jp: item["G列"],
             link_us: item["H列"],
           };
-        });
+        }).filter((item) => item !== null); // 空っぽの行を捨てる
 
-        console.log("変換後のデータ:", cleanData); // 確認用
         setDatabase(cleanData);
         setLoading(false);
       })
@@ -45,7 +51,6 @@ export default function App() {
       });
   }, []);
 
-  // 言語設定
   const t = {
     ja: {
       title: "アニメ→漫画 変換器",
@@ -70,7 +75,6 @@ export default function App() {
   };
   const currentText = lang === "ja" ? t.ja : t.en;
 
-  // 検索ロジック
   const filteredData = database.filter((item: any) => {
     if (query === "") return false;
     const searchLower = query.toLowerCase();
@@ -131,7 +135,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* リンクがある時だけボタンを表示する */}
               {(lang === "ja" ? item.link_jp : item.link_us) && (
                 <a 
                   href={lang === "ja" ? item.link_jp : item.link_us} 
