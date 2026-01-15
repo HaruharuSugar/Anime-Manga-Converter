@@ -53,7 +53,7 @@ export default function App() {
 
   const t = {
     ja: {
-      title: "アニメ→漫画 変換器",
+      title: "アニメの続きは何巻から？",
       placeholder: "アニメのタイトルを入力...",
       notFound: "見つかりませんでした...",
       animeEp: "アニメ最新話",
